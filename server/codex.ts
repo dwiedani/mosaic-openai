@@ -81,7 +81,7 @@ export function readCodexUsage(
         clientInfo: {
           name: "mosaic_openai",
           title: "Mosaic OpenAI",
-          version: "1.0.0",
+          version: "0.0.1",
         },
       },
     });
