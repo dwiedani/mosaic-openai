@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import {
   Button,
   EmptyState,
@@ -9,7 +9,7 @@ import {
   useDashboardTheme,
 } from "@mosaic/sdk";
 import { loadUsage, usageKey } from "../services/usage";
-import type { UsageWindow } from "../domain/usage";
+import { unavailableMessages, type UsageWindow } from "../domain/usage";
 
 function UsageBar({
   window,
@@ -102,7 +102,11 @@ export function UsageContent({
 }) {
   const dashboard = useDashboard();
   const { tokens } = useDashboardTheme();
-  const state = useAppQuery({ key: usageKey, query: loadUsage });
+  const query = useCallback(
+    () => loadUsage(dashboard.service),
+    [dashboard.service],
+  );
+  const state = useAppQuery({ key: usageKey, query });
   useEffect(() => {
     const refresh = () => {
       if (document.visibilityState === "visible")
@@ -123,7 +127,17 @@ export function UsageContent({
         onRetry={() => dashboard.data.invalidate(usageKey)}
       />
     );
-  if (!state.data.windows.length)
+  if (state.data.status === "unavailable")
+    return (
+      <EmptyState title="Verbrauch nicht verfügbar">
+        <p>{unavailableMessages[state.data.reason]}</p>
+        <Button onClick={() => dashboard.data.invalidate(usageKey)}>
+          Erneut versuchen
+        </Button>
+      </EmptyState>
+    );
+  const snapshot = state.data.data;
+  if (!snapshot.windows.length)
     return (
       <EmptyState title="Keine Limits verfügbar">
         <p>Codex liefert für dieses Konto aktuell keine Verbrauchswerte.</p>
@@ -132,7 +146,7 @@ export function UsageContent({
         </Button>
       </EmptyState>
     );
-  const age = Date.now() - Date.parse(state.data.updatedAt);
+  const age = Date.now() - Date.parse(snapshot.updatedAt);
   return (
     <div
       style={{
@@ -144,7 +158,7 @@ export function UsageContent({
       <span style={{ color: tokens.colors.textMuted, fontSize: "0.75rem" }}>
         Verbraucht{age > 120000 ? " · Daten veraltet" : ""}
       </span>
-      {state.data.windows.map((window) => (
+      {snapshot.windows.map((window) => (
         <UsageBar key={window.id} window={window} compact={compact} />
       ))}
       {!compact && (
@@ -158,7 +172,7 @@ export function UsageContent({
         >
           <span style={{ color: tokens.colors.textMuted, fontSize: "0.75rem" }}>
             Stand{" "}
-            {new Date(state.data.updatedAt).toLocaleTimeString("de-DE", {
+            {new Date(snapshot.updatedAt).toLocaleTimeString("de-DE", {
               hour: "2-digit",
               minute: "2-digit",
             })}

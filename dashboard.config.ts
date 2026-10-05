@@ -7,6 +7,7 @@ export default defineApp({
   icon: "sun",
   requires: { dashboardApi: ">=1.0.0 <2.0.0" },
   app: { component: () => import("./src/app") },
+  service: { entry: "./server/service.ts", runtime: "node", autostart: true },
   widgets: [
     defineWidget({
       id: "usage",

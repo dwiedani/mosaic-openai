@@ -1,36 +1,34 @@
-import { DashboardError } from "@mosaic/sdk";
-import { parseSnapshot, type UsageSnapshot } from "../domain/usage";
+import type { ServiceAPI } from "@mosaic/sdk";
+import { parseUsageResult, type UsageResult } from "../domain/usage";
 
-export const usageKey = ["usage", "v1"] as const;
+export const usageKey = ["usage", "v2"] as const;
 
-export async function loadUsage(): Promise<UsageSnapshot> {
-  let response: Response;
+export async function loadUsage(service: ServiceAPI): Promise<UsageResult> {
+  if (!service || typeof service.call !== "function")
+    return { status: "unavailable", reason: "service-unavailable" };
+  let response: unknown;
   try {
-    response = await fetch("http://127.0.0.1:4311/usage", {
-      signal: AbortSignal.timeout(25000),
-      cache: "no-store",
-      credentials: "omit",
+    response = await service.call("openai", "getUsage", undefined, {
+      signal: AbortSignal.timeout(12000),
     });
-  } catch {
-    throw new DashboardError(
-      "NETWORK",
-      "Verbrauchsdienst nicht erreichbar. Starte im mosaic-openai-Ordner npm start.",
-    );
-  }
-  if (!response.ok) {
-    throw new DashboardError(
-      "NETWORK",
-      response.status === 403
-        ? "Dieser Mosaic-Ursprung ist nicht freigegeben. Prüfe MOSAIC_ALLOWED_ORIGINS."
-        : "Codex-Limits nicht verfügbar. Prüfe die Codex-Anmeldung (codex login).",
-    );
+  } catch (error) {
+    const code =
+      error && typeof error === "object" && "code" in error ? error.code : null;
+    return {
+      status: "unavailable",
+      reason:
+        code === "SERVICE_TIMEOUT"
+          ? "timeout"
+          : code === "NOT_FOUND" ||
+              code === "SERVICE_UNAVAILABLE" ||
+              code === "SERVICE_FAILED"
+            ? "service-unavailable"
+            : "network",
+    };
   }
   try {
-    return parseSnapshot(await response.json());
+    return parseUsageResult(response);
   } catch {
-    throw new DashboardError(
-      "VALIDATION",
-      "Die Verbrauchsdaten sind ungültig. Aktualisiere den lokalen Verbrauchsdienst.",
-    );
+    return { status: "unavailable", reason: "invalid-data" };
   }
 }

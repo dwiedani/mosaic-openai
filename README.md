@@ -2,45 +2,69 @@
 
 Eine einfache Verbrauchsanzeige für **Codex mit ChatGPT-Abo**: Prozentbalken für jedes verfügbare Limit, etwa das 5-Stunden- und Wochenlimit. App und Widget verwenden dieselben Daten und aktualisieren sich jede Minute. Fehlende Limits werden nicht als 0 % dargestellt.
 
-## Lokal starten
+## Installation in Mosaic
 
-Voraussetzungen: Node.js >= 22.14, Mosaic als Nachbar-Repository `../Mosaic` und eine installierte Codex CLI mit ChatGPT-Anmeldung (`codex login`). Das SDK ist derzeit nur lokal verfügbar.
+Voraussetzung ist ein Mosaic-Stand mit **Service-Runtime** und `service.call(appId, method, input)` im SDK. Ältere Mosaic-Versionen unterstützen das Service-Manifest nicht.
+
+Die Release-Dateien `mosaic-app.zip` und `checksums.json` als GitHub-Release-Assets veröffentlichen. Dann in Mosaic das Repository `https://github.com/dwiedani/mosaic-openai` installieren beziehungsweise aktualisieren, die App **OpenAI** aktivieren und das Widget **OpenAI-Verbrauch** hinzufügen.
+
+Mosaic startet den mitgelieferten Node-Service automatisch. Ein separates `npm start` für diese App, Port 4311 und CORS-/CSP-Freigaben sind ab Version 0.0.2 nicht mehr erforderlich.
+
+## Codex auf dem Mosaic-Host
+
+Codex muss auf dem Rechner installiert sein, auf dem **der Mosaic-Server** läuft. Dort unter dem Betriebssystemkonto, das Mosaic startet, mit einem ChatGPT-Abo anmelden:
 
 ```sh
-npm ci
-npm start
+codex login
 ```
 
-Der lokale Verbrauchsdienst läuft auf `http://127.0.0.1:4311`. Er verwendet die vorhandene Codex-Anmeldung über den [offiziellen App Server](https://learn.chatgpt.com/docs/app-server), mit `initialize`, `initialized` und `account/rateLimits/read`. Er startet keine Modellanfragen. Zugangsdaten werden weder aus Dateien gelesen noch an den Browser übermittelt.
+Mosaic verwendet die vorhandene Codex-Anmeldung über den [offiziellen App Server](https://learn.chatgpt.com/docs/app-server), mit `initialize`, `initialized` und `account/rateLimits/read`. Es werden keine Modellanfragen gestartet. Zugangsdaten werden weder aus Dateien gelesen noch an den Browser übermittelt.
 
-Falls `codex` nicht im PATH liegt:
+Liegt `codex` nicht im PATH des Mosaic-Prozesses, **Mosaic** mit dem ausführbaren Pfad starten:
 
 ```sh
 MOSAIC_CODEX_BIN=/absoluter/pfad/zu/codex npm start
 ```
 
-Mosaic läuft standardmäßig unter `http://127.0.0.1:4310` oder `http://localhost:4310`. Andere lokale Mosaic-Ursprünge können mit `MOSAIC_ALLOWED_ORIGINS` freigegeben werden (kommagetrennte vollständige Origins). Der Dienst ist ausschließlich an Loopback gebunden; der Browser und Codex müssen auf demselben Rechner laufen. Dies ist ein persönlicher lokaler Dienst für das dort angemeldete Codex-Konto; eine Nutzung als gemeinsames Backend für verschiedene Mosaic-Nutzer ist nicht vorgesehen.
+Alternativ kann der Host über `ServerOptions.serviceConfiguration.openai.codexBin` einen serverseitigen Pfad injizieren. Der normale Mosaic-Start liest diese Service-Konfiguration derzeit nicht aus einer Datei; die Umgebungsvariable ist daher der einfache Weg.
 
-## Build und Installation
+## Gehosteter Betrieb
+
+```text
+Client-Browser → Mosaic-Service-Gateway mit Session-Auth
+               → OpenAI-Node-Service im Mosaic-Server
+               → codex app-server auf dem Host (stdin/stdout)
+```
+
+Clients benötigen nur ihren Browser; Codex ist dort nicht erforderlich. Das SDK verwendet den Mosaic-Ursprung, sodass die Anzeige auch auf anderen Rechnern und über HTTPS funktioniert. Mosaic prüft Anmeldung sowie Plattform- und Benutzeraktivierung der Ziel-App.
+
+Die Prozentwerte betreffen das **auf dem Host angemeldete Codex-Konto**. Alle Mosaic-Nutzer mit Zugriff auf die aktivierte OpenAI-App sehen dieselben Kontolimits. Eine persönliche Codex-Anmeldung je Mosaic-Nutzer ist nicht implementiert.
+
+## Entwicklung und Release
+
+Voraussetzungen: Node.js >= 22.14 und Mosaic als Nachbar-Repository `../Mosaic`. Das SDK ist derzeit nur lokal verfügbar.
 
 ```sh
+npm ci
 npm run typecheck
 npm test
 npm run validate
 npm run package
 ```
 
-Der Mosaic-Builder erzeugt `dist/manifest.json`, Browser-Entrypoints sowie `release/mosaic-app.zip` und `release/checksums.json`. Für die Installation per Repository-Link müssen die beiden Release-Dateien als GitHub-Release-Assets veröffentlicht werden. Repository: `https://github.com/dwiedani/mosaic-openai`.
-
-Nach der Installation die App **OpenAI** aktivieren und das Widget **OpenAI-Verbrauch** zum Dashboard hinzufügen. Unterstützt werden Small, Medium und Large sowie die Themes Cloud und Pixel. Die App und das große Widget zeigen zusätzlich Rücksetzzeiten und eine manuelle Aktualisierung. Der Verbrauchsdienst muss separat mit `npm start` laufen; der Mosaic-Browser-Builder startet keine Backend-Prozesse.
+Der Mosaic-Builder erzeugt Browser-Entrypoints, `service.bundle.js`, `dist/manifest.json` sowie `release/mosaic-app.zip` und `release/checksums.json`. Das Service-Bundle ist selbstständig und wird von Mosaic nicht als Browser-Asset ausgeliefert. App- und Widget-IDs bleiben kompatibel mit 0.0.1; vorhandene Widget-Instanzen können weiterverwendet werden.
 
 ## Anzeige und Grenzen
 
-- Prozentwerte bedeuten **verbraucht**, nicht verbleibend. Zeitfenster werden anhand ihrer tatsächlichen Dauer beschriftet, nicht anhand ihrer Position in der API-Antwort.
-- Alle vom Konto gemeldeten Limitgruppen werden angezeigt; die aktuelle Mehrgruppen-Antwort hat Vorrang vor der älteren Einzelgruppe.
-- Erfolgreiche Abfragen werden 60 Sekunden zwischengespeichert; parallele Anfragen teilen sich denselben Abruf.
-- Rücksetzzeiten erscheinen in der Zeitzone des Browsers. Abgelaufene Zeitfenster werden als „Rücksetzung ausstehend“ markiert, bis neue Serverwerte vorliegen.
-- Die Anzeige betrifft die von Codex bereitgestellten Abo-Limits. Allgemeine ChatGPT-Nachrichtenlimits und OpenAI-API-Ausgaben gehören nicht zu dieser Schnittstelle.
-- Fehlende Anmeldung, nicht erreichbarer Dienst und ungültige Daten erscheinen als Fehler mit Wiederholungsaktion.
+- Prozentwerte bedeuten **verbraucht**, nicht verbleibend. Zeitfenster werden anhand ihrer tatsächlichen Dauer beschriftet.
+- Alle vom Konto gemeldeten Limitgruppen werden angezeigt; Mehrgruppen-Antworten haben Vorrang vor der älteren Einzelgruppe.
+- Erfolgreiche Abrufe werden hostweit 60 Sekunden zwischengespeichert. Parallele Client-Anfragen teilen sich denselben Abruf. Fehler werden nicht gecacht.
+- Rücksetzzeiten erscheinen in der Zeitzone des Browsers. Abgelaufene Zeitfenster bleiben als „Rücksetzung ausstehend“ markiert, bis neue Serverwerte vorliegen.
+- Small, Medium und Large sowie Cloud und Pixel werden unterstützt. Die App und das große Widget zeigen zusätzlich Rücksetzzeiten und eine manuelle Aktualisierung.
+- Die Anzeige betrifft Codex-Abo-Limits. Allgemeine ChatGPT-Nachrichtenlimits und OpenAI-API-Ausgaben gehören nicht zu dieser Schnittstelle.
+- Fehlendes Codex, fehlende Host-Anmeldung und Service-Probleme zeigen Einrichtungshinweise mit Wiederholungsaktion.
+- Ein einzelner Client-Abbruch beendet nicht den gemeinsam genutzten Abruf. Ein Service-Stop bricht den Abruf ab und wartet auf die Beendigung des Codex-Prozesses. Das Abruflimit liegt unter Mosaics Standard-RPC-Zeitlimit.
 
-Die Tests prüfen Normalisierung, fehlende/ungültige Limits, Mehrgruppen-Antworten, RPC-Handshake, Timeout, Fehlerbehandlung, CORS-/Host-Schutz und den gemeinsamen Servercache.
+## Migration von 0.0.1
+
+Nach dem Update übernimmt Mosaic den Service-Start. Einen noch laufenden separaten Dienst auf Port 4311 beenden. Die nur dafür eingerichtete Freigabe `http://127.0.0.1:4311` kann aus Mosaics `.mosaic/connect-origins.json` oder `MOSAIC_CONNECT_ORIGINS` entfernt werden. Andere Freigaben erhalten. Anschließend die Mosaic-Browserseite neu laden.

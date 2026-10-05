@@ -59,7 +59,7 @@ test("missing limits are unavailable, never invented zero percent", () => {
   );
 });
 
-test("validates bridge snapshots and rejects invalid dates, percentages and duplicate IDs", () => {
+test("validates service snapshots and rejects invalid dates, percentages and duplicate IDs", () => {
   const good = normalizeRateLimits({ rateLimits: { primary: weekly } }, now);
   assert.deepEqual(parseSnapshot(good), good);
   assert.throws(() => parseSnapshot({ ...good, updatedAt: "invalid" }));

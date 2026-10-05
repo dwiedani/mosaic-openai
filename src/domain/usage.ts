@@ -11,6 +11,41 @@ export interface UsageSnapshot {
   readonly windows: readonly UsageWindow[];
 }
 
+export const unavailableMessages = {
+  "codex-missing":
+    "Codex fehlt auf dem Mosaic-Host. Installiere Codex dort oder setze MOSAIC_CODEX_BIN beim Start von Mosaic.",
+  "login-required":
+    "Melde Codex auf dem Mosaic-Host mit deinem ChatGPT-Abo an (codex login).",
+  timeout: "Codex auf dem Mosaic-Host antwortet nicht. Bitte erneut versuchen.",
+  connection: "Die Verbindung zu Codex auf dem Mosaic-Host wurde unterbrochen.",
+  "invalid-data": "Der Service lieferte ungültige Verbrauchsdaten.",
+  "service-unavailable":
+    "Der OpenAI-Service ist nicht verfügbar. Prüfe die Service-Runtime und die App-Aktivierung in Mosaic.",
+  network:
+    "Der Mosaic-Service konnte nicht erreicht werden. Prüfe deine Verbindung und Anmeldung.",
+} as const;
+export type UnavailableReason = keyof typeof unavailableMessages;
+export type UsageResult =
+  | { readonly status: "ready"; readonly data: UsageSnapshot }
+  | { readonly status: "unavailable"; readonly reason: UnavailableReason };
+
+/** Validate the JSON service contract; display only locally defined error messages. */
+export function parseUsageResult(input: unknown): UsageResult {
+  const result = record(input);
+  if (result?.status === "ready")
+    return { status: "ready", data: parseSnapshot(result.data) };
+  if (
+    result?.status === "unavailable" &&
+    typeof result.reason === "string" &&
+    Object.hasOwn(unavailableMessages, result.reason)
+  )
+    return {
+      status: "unavailable",
+      reason: result.reason as UnavailableReason,
+    };
+  throw new Error("Ungültige Verbrauchsdaten.");
+}
+
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -88,7 +123,7 @@ export function normalizeRateLimits(
   return { updatedAt: now.toISOString(), windows };
 }
 
-/** Validate the local bridge response before it enters the shared query cache. */
+/** Validate a snapshot before it enters the shared query cache. */
 export function parseSnapshot(input: unknown): UsageSnapshot {
   const data = record(input);
   if (

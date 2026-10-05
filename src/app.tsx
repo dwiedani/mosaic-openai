@@ -8,7 +8,7 @@ export default function OpenAIApp() {
       <div style={{ padding: tokens.spacing.lg, maxWidth: 560 }}>
         <h1>OpenAI-Verbrauch</h1>
         <p style={{ color: tokens.colors.textMuted }}>
-          Deine Codex-Abo-Limits auf einen Blick.
+          Codex-Abo-Limits des Mosaic-Hosts auf einen Blick.
         </p>
         <UsageContent />
       </div>

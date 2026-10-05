@@ -1,19 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readCodexUsage } from "../server/codex";
 
 async function fakeCli(
   source: string,
-  run: (command: string) => Promise<void>,
+  run: (command: string, directory: string) => Promise<void>,
 ) {
   const directory = await mkdtemp(join(tmpdir(), "mosaic-openai-test-"));
   const command = join(directory, "codex.mjs");
   await writeFile(command, `#!${process.execPath}\n${source}`, { mode: 0o700 });
   try {
-    await run(command);
+    await run(command, directory);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
@@ -46,7 +46,7 @@ createInterface({ input: process.stdin }).on("line", line => {
 test("adapter handles missing CLI and timeout", async () => {
   await assert.rejects(
     readCodexUsage("/nonexistent/mosaic-codex"),
-    /Codex CLI fehlt/,
+    /Codex fehlt/,
   );
   await fakeCli("setInterval(() => {}, 1000);", async (command) => {
     await assert.rejects(readCodexUsage(command, 100), /antwortet nicht/);
@@ -68,6 +68,35 @@ createInterface({ input: process.stdin }).on("line", line => {
           !error.message.includes("secret-token") &&
           error.message.includes("codex login"),
       );
+    },
+  );
+});
+
+test("cancellation reaps even a child that ignores SIGTERM", async () => {
+  await fakeCli(
+    `import { writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+writeFileSync(join(dirname(fileURLToPath(import.meta.url)), 'pid'), String(process.pid));
+process.on('SIGTERM', () => {});
+setInterval(() => {}, 1000);`,
+    async (command, directory) => {
+      const controller = new AbortController();
+      const read = readCodexUsage(command, 5000, { signal: controller.signal });
+      let pid: number | undefined;
+      for (let attempt = 0; attempt < 100; attempt++) {
+        try {
+          pid = Number(await readFile(join(directory, "pid"), "utf8"));
+          break;
+        } catch {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+      }
+      const rejection = assert.rejects(read);
+      controller.abort();
+      await rejection;
+      assert.ok(pid);
+      assert.throws(() => process.kill(pid, 0));
     },
   );
 });

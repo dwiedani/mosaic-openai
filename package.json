@@ -1,6 +1,6 @@
 {
   "name": "mosaic-openai",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "type": "module",
   "engines": {
@@ -19,7 +19,6 @@
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "start": "tsx server/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "validate": "npm --prefix ../Mosaic run app:validate -- ../mosaic-openai",
