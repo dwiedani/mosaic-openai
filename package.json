@@ -1,0 +1,29 @@
+{
+  "name": "mosaic-openai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "dependencies": {
+    "@mosaic/sdk": "file:../Mosaic/packages/sdk"
+  },
+  "peerDependencies": {
+    "react": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "@types/react": "^19.2.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "start": "tsx server/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "validate": "npm --prefix ../Mosaic run app:validate -- ../mosaic-openai",
+    "build": "npm --prefix ../Mosaic run app:build -- ../mosaic-openai",
+    "package": "npm --prefix ../Mosaic run app:package -- ../mosaic-openai"
+  }
+}
