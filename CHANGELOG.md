@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.4
+
+- Codex-AI-Provider über die vorhandene ChatGPT-Anmeldung des Mosaic-Hosts, ohne OpenAI-API-Key; `MOSAIC_CODEX_BIN` gilt für Verbrauch und AI.
+- Automatische Provider-Registrierung nach erfolgreicher Anmeldungsprüfung; Textgenerierung, strukturierte Ausgaben und Klassifikation hinter `mosaic.ai`.
+- Ephemere Read-only-Anfragen ohne Tools; Timeout, Abbruch und Service-Stop beenden die Prozesse und entfernen temporäre Arbeitsordner.
+- Separater API-Provider bleibt optional; Codex bietet keine Embeddings an.
+
 ## 0.0.3
 
 - Optionaler OpenAI-Provider für Mosaics provider-neutrale AI Runtime: Textgenerierung, strukturierte JSON-Schema-Ausgaben, Klassifikation und konfigurierbare Embeddings.

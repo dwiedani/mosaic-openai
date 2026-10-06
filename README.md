@@ -18,7 +18,7 @@ Codex muss auf dem Rechner installiert sein, auf dem **der Mosaic-Server** läuf
 codex login
 ```
 
-Mosaic verwendet die vorhandene Codex-Anmeldung über den [offiziellen App Server](https://learn.chatgpt.com/docs/app-server), mit `initialize`, `initialized` und `account/rateLimits/read`. Es werden keine Modellanfragen gestartet. Zugangsdaten werden weder aus Dateien gelesen noch an den Browser übermittelt.
+Mosaic verwendet die vorhandene Codex-Anmeldung über den [offiziellen App Server](https://learn.chatgpt.com/docs/app-server), mit `initialize`, `initialized` und `account/rateLimits/read`. Die Verbrauchsanzeige startet keine Modellanfragen. Explizite Aufrufe über `mosaic.ai` nutzen ab 0.0.4 zusätzlich den Codex-AI-Provider. Zugangsdaten werden weder aus Dateien gelesen noch an den Browser übermittelt.
 
 Der Service sucht automatisch nach `codex` im PATH des Mosaic-Prozesses. Auf macOS erkennt er zusätzlich die gebündelte Codex-Datei in `ChatGPT.app` unter `/Applications` und `~/Applications`. Für diese Installation ist `MOSAIC_CODEX_BIN` nicht erforderlich.
 
@@ -75,6 +75,16 @@ Nach dem Update übernimmt Mosaic den Service-Start. Einen noch laufenden separa
 
 ## Provider-neutrale Mosaic AI
 
-Die App kann zusätzlich einen Provider `openai` für `mosaic.ai` registrieren. Nur diese Provider-App kennt den OpenAI-Transport; konsumierende Apps importieren ausschließlich Mosaic SDK. Die bestehende App-ID `openai` bleibt erhalten. Im Mosaic-Server verweist `MOSAIC_SERVICE_CONFIGURATION_FILE` auf lokale Konfiguration nach App-ID: `{"openai":{"apiKey":"…","model":"…","embeddingModel":"…"}}`. Zugangsdaten bleiben serverseitig und werden nicht in UI-/Registryantworten ausgegeben. Ohne Key/Modell erfolgt keine AI-Registrierung; die Verbrauchsfunktion bleibt nutzbar. Embeddings werden nur bei konfiguriertem Embedding-Modell angeboten. Die Modelle müssen die jeweiligen Capabilities unterstützen.
+Ab 0.0.4 registriert die App den Provider **`codex`**, wenn Codex auf dem Mosaic-Host vorhanden und mit ChatGPT angemeldet ist. Ein OpenAI-API-Key ist dafür nicht erforderlich. `MOSAIC_CODEX_BIN` oder die automatische macOS-Erkennung gelten für Verbrauch und AI gleichermaßen:
 
-Der Provider unterstützt Textgenerierung, JSON-Schema-Ausgaben, Klassifikation und optional Embeddings. Responses verwenden `store: false`, keine Tools und keine autonomen Aktionen. Ergebnisse sind AI-abgeleitet und werden durch Mosaic/App-Schemas geprüft. Providerauswahl erfolgt in Mosaic-Einstellungen. Tests verwenden Mock-HTTP; Live-Inferenz wurde ohne konfigurierte Zugangsdaten nicht ausgeführt.
+```sh
+MOSAIC_CODEX_BIN="/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex" npm start
+```
+
+Nach Installation oder Aktualisierung der OpenAI-App erscheint `codex` in Mosaics AI-Einstellungen. Der Provider unterstützt Textgenerierung, JSON-Schema-Ausgaben und Klassifikation. Embeddings werden nicht angeboten. Das Modell kommt aus der Codex-Host-Konfiguration; optional kann `MOSAIC_SERVICE_CONFIGURATION_FILE` die App-Konfiguration `{"openai":{"codexModel":"<Modell-ID>"}}` liefern. Nach einer späteren Host-Anmeldung den App-Service oder Mosaic neu starten, damit die Registrierung erneut geprüft wird. Alle berechtigten Mosaic-Nutzer verwenden das Codex-Konto des Hosts und dessen Limits.
+
+Jede Anfrage verwendet einen eigenen temporären Arbeitsordner und einen ephemeren App-Server-Thread mit Read-only-Sandbox. Shell, Code Mode, Apps, Hooks, Websuche und Multi-Agent-Tools werden deaktiviert; konfigurierte MCP-Server und Plugins werden für den Thread deaktiviert. Interaktions-/Tool-Anfragen werden abgelehnt. Der Adapter beendet Prozesse bei Erfolg, Fehler, Timeout, Client-Abbruch und Service-Stop und entfernt den temporären Ordner. Er verwendet nur den übergebenen Prompt und Context-EntityRefs; EntityRefs enthalten keine automatisch aufgelösten Dateiinhalte.
+
+Optional bleibt der separate API-Provider `openai` verfügbar. Im Mosaic-Server verweist `MOSAIC_SERVICE_CONFIGURATION_FILE` auf `{"openai":{"apiKey":"…","model":"…","embeddingModel":"…"}}`. Nur dieser Transport benötigt einen API-Key. Embeddings werden nur mit konfiguriertem Embedding-Modell angeboten. Responses verwenden `store: false` und keine Tools. Zugangsdaten bleiben serverseitig. Die bestehende App-ID `openai` bleibt erhalten; konsumierende Apps verwenden ausschließlich das Mosaic SDK. Die Provider-Auswahl erfolgt zentral pro Capability.
+
+Ergebnisse bleiben AI-abgeleitet und werden durch Mosaic/App-Schemas geprüft. Tests verwenden Mock-HTTP und einen Fake-Codex-App-Server; reale Textgenerierung, strukturierte Ausgabe und Klassifikation wurden zusätzlich mit der vorhandenen ChatGPT-Host-Anmeldung geprüft.
