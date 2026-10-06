@@ -20,11 +20,15 @@ codex login
 
 Mosaic verwendet die vorhandene Codex-Anmeldung über den [offiziellen App Server](https://learn.chatgpt.com/docs/app-server), mit `initialize`, `initialized` und `account/rateLimits/read`. Es werden keine Modellanfragen gestartet. Zugangsdaten werden weder aus Dateien gelesen noch an den Browser übermittelt.
 
-Liegt `codex` nicht im PATH des Mosaic-Prozesses, **Mosaic** mit dem ausführbaren Pfad starten:
+Der Service sucht automatisch nach `codex` im PATH des Mosaic-Prozesses. Auf macOS erkennt er zusätzlich die gebündelte Codex-Datei in `ChatGPT.app` unter `/Applications` und `~/Applications`. Für diese Installation ist `MOSAIC_CODEX_BIN` nicht erforderlich.
+
+Für andere Installationsorte kann **Mosaic** mit einem expliziten Pfad gestartet werden. Dieser hat Vorrang vor der automatischen Erkennung:
 
 ```sh
 MOSAIC_CODEX_BIN=/absoluter/pfad/zu/codex npm start
 ```
+
+Der gebündelte Pfad auf diesem macOS-Installationstyp lautet `/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex`. In Containern muss Codex innerhalb des Containers vorhanden sein.
 
 Alternativ kann der Host über `ServerOptions.serviceConfiguration.openai.codexBin` einen serverseitigen Pfad injizieren. Der normale Mosaic-Start liest diese Service-Konfiguration derzeit nicht aus einer Datei; die Umgebungsvariable ist daher der einfache Weg.
 
@@ -68,3 +72,9 @@ Der Mosaic-Builder erzeugt Browser-Entrypoints, `service.bundle.js`, `dist/manif
 ## Migration von 0.0.1
 
 Nach dem Update übernimmt Mosaic den Service-Start. Einen noch laufenden separaten Dienst auf Port 4311 beenden. Die nur dafür eingerichtete Freigabe `http://127.0.0.1:4311` kann aus Mosaics `.mosaic/connect-origins.json` oder `MOSAIC_CONNECT_ORIGINS` entfernt werden. Andere Freigaben erhalten. Anschließend die Mosaic-Browserseite neu laden.
+
+## Provider-neutrale Mosaic AI
+
+Die App kann zusätzlich einen Provider `openai` für `mosaic.ai` registrieren. Nur diese Provider-App kennt den OpenAI-Transport; konsumierende Apps importieren ausschließlich Mosaic SDK. Die bestehende App-ID `openai` bleibt erhalten. Im Mosaic-Server verweist `MOSAIC_SERVICE_CONFIGURATION_FILE` auf lokale Konfiguration nach App-ID: `{"openai":{"apiKey":"…","model":"…","embeddingModel":"…"}}`. Zugangsdaten bleiben serverseitig und werden nicht in UI-/Registryantworten ausgegeben. Ohne Key/Modell erfolgt keine AI-Registrierung; die Verbrauchsfunktion bleibt nutzbar. Embeddings werden nur bei konfiguriertem Embedding-Modell angeboten. Die Modelle müssen die jeweiligen Capabilities unterstützen.
+
+Der Provider unterstützt Textgenerierung, JSON-Schema-Ausgaben, Klassifikation und optional Embeddings. Responses verwenden `store: false`, keine Tools und keine autonomen Aktionen. Ergebnisse sind AI-abgeleitet und werden durch Mosaic/App-Schemas geprüft. Providerauswahl erfolgt in Mosaic-Einstellungen. Tests verwenden Mock-HTTP; Live-Inferenz wurde ohne konfigurierte Zugangsdaten nicht ausgeführt.

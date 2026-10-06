@@ -1,22 +1,34 @@
+import { createOpenAIProvider, providerDefinition } from "./ai";
 import { defineService } from "@mosaic/sdk/service";
 import { UsageCache } from "./cache";
 import { CodexUsageError, readCodexUsage } from "./codex";
+import { resolveCodexCommand } from "./codex-command";
 import type { UsageResult } from "../src/domain/usage";
 
 let cache: UsageCache | undefined;
 
 export default defineService({
-  start(ctx) {
+  async start(ctx) {
+    const ai = createOpenAIProvider(ctx.configuration);
+    if (ai)
+      ctx.registerAIProvider(
+        {
+          ...providerDefinition,
+          capabilities: providerDefinition.capabilities.filter(
+            (capability) =>
+              capability !== "embeddings" ||
+              typeof ctx.configuration.embeddingModel === "string",
+          ),
+        },
+        (capability, request) => ai(capability, request),
+      );
     const configured = ctx.configuration.codexBin;
     if (
       configured !== undefined &&
       (typeof configured !== "string" || !configured.trim())
     )
       throw new Error("Invalid Codex executable configuration");
-    const command =
-      typeof configured === "string"
-        ? configured
-        : process.env.MOSAIC_CODEX_BIN || "codex";
+    const command = await resolveCodexCommand(configured);
     cache = new UsageCache((signal) =>
       readCodexUsage(command, 8000, { signal, version: ctx.app.version }),
     );
