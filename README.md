@@ -64,7 +64,7 @@ Der Mosaic-Builder erzeugt Browser-Entrypoints, `service.bundle.js`, `dist/manif
 - Alle vom Konto gemeldeten Limitgruppen werden angezeigt; Mehrgruppen-Antworten haben Vorrang vor der älteren Einzelgruppe.
 - Erfolgreiche Abrufe werden hostweit 60 Sekunden zwischengespeichert. Parallele Client-Anfragen teilen sich denselben Abruf. Fehler werden nicht gecacht.
 - Rücksetzzeiten erscheinen in der Zeitzone des Browsers. Abgelaufene Zeitfenster bleiben als „Rücksetzung ausstehend“ markiert, bis neue Serverwerte vorliegen.
-- Small, Medium und Large sowie Cloud und Pixel werden unterstützt. Die App und das große Widget zeigen zusätzlich Rücksetzzeiten und eine manuelle Aktualisierung.
+- Small, Medium und Large sowie Cloud, Pixel und Flat werden unterstützt. Die App und das große Widget zeigen zusätzlich Rücksetzzeiten und eine manuelle Aktualisierung.
 - Die Anzeige betrifft Codex-Abo-Limits. Allgemeine ChatGPT-Nachrichtenlimits und OpenAI-API-Ausgaben gehören nicht zu dieser Schnittstelle.
 - Fehlendes Codex, fehlende Host-Anmeldung und Service-Probleme zeigen Einrichtungshinweise mit Wiederholungsaktion.
 - Ein einzelner Client-Abbruch beendet nicht den gemeinsam genutzten Abruf. Ein Service-Stop bricht den Abruf ab und wartet auf die Beendigung des Codex-Prozesses. Das Abruflimit liegt unter Mosaics Standard-RPC-Zeitlimit.
