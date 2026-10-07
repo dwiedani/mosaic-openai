@@ -88,3 +88,7 @@ Jede Anfrage verwendet einen eigenen temporären Arbeitsordner und einen ephemer
 Optional bleibt der separate API-Provider `openai` verfügbar. Im Mosaic-Server verweist `MOSAIC_SERVICE_CONFIGURATION_FILE` auf `{"openai":{"apiKey":"…","model":"…","embeddingModel":"…"}}`. Nur dieser Transport benötigt einen API-Key. Embeddings werden nur mit konfiguriertem Embedding-Modell angeboten. Responses verwenden `store: false` und keine Tools. Zugangsdaten bleiben serverseitig. Die bestehende App-ID `openai` bleibt erhalten; konsumierende Apps verwenden ausschließlich das Mosaic SDK. Die Provider-Auswahl erfolgt zentral pro Capability.
 
 Ergebnisse bleiben AI-abgeleitet und werden durch Mosaic/App-Schemas geprüft. Tests verwenden Mock-HTTP und einen Fake-Codex-App-Server; reale Textgenerierung, strukturierte Ausgabe und Klassifikation wurden zusätzlich mit der vorhandenen ChatGPT-Host-Anmeldung geprüft.
+
+### KI-Zeitlimit
+
+Ab 0.0.5 wartet der Codex-Provider bis zu 110 Sekunden auf eine vollständige Antwort. Der Mosaic-Core muss den zugehörigen Fix mit 120 Sekunden AI-Zeitlimit enthalten; ältere Hosts brechen weiterhin nach 30 Sekunden ab. Benutzerabbruch und Service-Stop beenden die Anfrage weiterhin sofort. Die Anmeldungsprüfung bleibt auf 7 Sekunden begrenzt.

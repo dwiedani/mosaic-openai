@@ -29,7 +29,7 @@ appendFileSync(trace, JSON.stringify({pid: process.pid, cwd: process.cwd(), args
 if (mode === 'hang') process.on('SIGTERM', () => {});
 const send = message => process.stdout.write(JSON.stringify(message)+'\\n');
 let initialized = false;
-createInterface({input:process.stdin}).on('line', line => {
+createInterface({input:process.stdin}).on('line', async line => {
  const request = JSON.parse(line);
  appendFileSync(trace, line+'\\n');
  if (mode === 'hang') return;
@@ -43,6 +43,7 @@ createInterface({input:process.stdin}).on('line', line => {
   send({id:request.id,result:{thread:{id:'thread-test'}}});
  }
  if (request.method === 'turn/start') {
+  if (mode === 'slow') await new Promise(resolve => setTimeout(resolve, 29000));
   send({id:request.id,result:{turn:{id:'turn-test'}}});
   if (mode === 'approval') return send({id:10,method:'item/commandExecution/requestApproval',params:{}});
   if (mode === 'tool') return send({method:'item/started',params:{threadId:'thread-test',item:{type:'commandExecution',id:'unsafe'}}});
@@ -221,7 +222,10 @@ test("Codex times out and cancellation reaps even an uncooperative child", async
       createCodexAIProvider(command, { timeoutMs: 1000 })("text-generation", {
         prompt: "hello",
       }),
-      /rechtzeitig/,
+      (error) =>
+        error instanceof Error &&
+        error.name === "TimeoutError" &&
+        /rechtzeitig/.test(error.message),
     );
     const entries = (await readFile(trace, "utf8"))
       .trim()
@@ -251,5 +255,16 @@ test("Codex times out and cancellation reaps even an uncooperative child", async
     controller.abort();
     await rejected;
     assert.throws(() => process.kill(pid, 0));
+  });
+});
+
+test("Codex completes inference beyond the former 28-second deadline", async () => {
+  await fakeCodex("slow", async (command) => {
+    assert.equal(
+      await createCodexAIProvider(command)("text-generation", {
+        prompt: "hello",
+      }),
+      "MOSAIC_CODEX_OK",
+    );
   });
 });

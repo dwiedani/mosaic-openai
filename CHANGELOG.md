@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.5
+
+- Codex-Inferenz erhält bis zu 110 Sekunden statt 28 Sekunden; die kurze Anmeldungsprüfung bleibt unverändert.
+- Zeitüberschreitungen werden als TimeoutError signalisiert; Abbruch und Prozess-Cleanup bleiben erhalten.
+- Benötigt für längere Antworten den Mosaic-Core-Fix mit 120 Sekunden AI-Zeitlimit.
+- Regressionstest für Antworten jenseits des früheren Zeitlimits.
+
 ## 0.0.4
 
 - Codex-AI-Provider über die vorhandene ChatGPT-Anmeldung des Mosaic-Hosts, ohne OpenAI-API-Key; `MOSAIC_CODEX_BIN` gilt für Verbrauch und AI.

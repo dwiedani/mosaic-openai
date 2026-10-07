@@ -94,8 +94,14 @@ async function runCodex(
           ),
         );
       const timeout = setTimeout(
-        () => finish(new Error("Codex AI antwortet nicht rechtzeitig.")),
-        options.timeoutMs ?? (request ? 28000 : 7000),
+        () =>
+          finish(
+            new DOMException(
+              "Codex AI antwortet nicht rechtzeitig.",
+              "TimeoutError",
+            ),
+          ),
+        options.timeoutMs ?? (request ? 110000 : 7000),
       );
       const abort = () => finish(new Error("Codex AI Anfrage abgebrochen."));
       options.signal?.addEventListener("abort", abort, { once: true });
@@ -216,7 +222,7 @@ async function runCodex(
           clientInfo: {
             name: "mosaic_openai",
             title: "Mosaic OpenAI",
-            version: options.version ?? "0.0.4",
+            version: options.version ?? "0.0.5",
           },
         },
       });
